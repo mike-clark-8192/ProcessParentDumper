@@ -542,7 +542,8 @@ namespace ProcessParentDumper.Core
                 if (pStringBuffer == IntPtr.Zero)
                     return null;
 
-                string result = Marshal.PtrToStringUni(pStringBuffer);
+                // stringLength is in bytes, PtrToStringUni needs character count
+                string result = Marshal.PtrToStringUni(pStringBuffer, stringLength / 2);
                 Marshal.FreeHGlobal(pStringBuffer);
 
                 return result;

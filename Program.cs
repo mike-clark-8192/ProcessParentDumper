@@ -6,6 +6,12 @@ namespace ProcessParentDumper
 {
     class Program
     {
+        /*
+         * jq hint:
+         * 
+         * ProcessParentDumper.exe | jq 'del(.parents[].env)' 
+         * 
+         */
         static void Main(string[] args)
         {
             DotnetRedoStdio.Install();
