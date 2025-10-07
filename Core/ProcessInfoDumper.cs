@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text.Json;
+using LightJson;
 
 namespace ProcessParentDumper.Core
 {
@@ -44,12 +44,43 @@ namespace ProcessParentDumper.Core
                 }
             }
 
-            var options = new JsonSerializerOptions
+            // Convert to LightJson structure
+            var jsonOutput = new JsonObject
             {
-                WriteIndented = true,
-                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                ["self"] = new JsonObject { ["pid"] = output.self["pid"] },
+                ["parents"] = new JsonArray()
             };
-            return JsonSerializer.Serialize(output, options);
+
+            // Convert each parent process info to JsonObject
+            foreach (var parent in output.parents)
+            {
+                var parentJson = new JsonObject
+                {
+                    ["pid"] = parent.pid,
+                    ["executable"] = parent.executable ?? "",
+                    ["commandLine"] = parent.commandLine ?? ""
+                };
+
+                // Add environment variables
+                if (parent.env != null)
+                {
+                    var envJson = new JsonObject();
+                    foreach (var kvp in parent.env)
+                    {
+                        envJson[kvp.Key] = kvp.Value;
+                    }
+                    parentJson["env"] = envJson;
+                }
+                else
+                {
+                    parentJson["env"] = new JsonObject();
+                }
+
+                jsonOutput["parents"].AsJsonArray.Add(parentJson);
+            }
+
+            // Return the pretty-printed JSON string
+            return jsonOutput.ToString(true);
         }
 
         private ProcessInfo GetProcessInfo(Process process)
