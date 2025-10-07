@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace ProcessParentDumper
+namespace ProcessParentDumper.Core
 {
     public interface IProcessInfoProvider
     {

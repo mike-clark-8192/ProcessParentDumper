@@ -1,11 +1,12 @@
-using ProcessParentDumper.Win32;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using ProcessParentDumper.Win32;
+using ProcessParentDumper.StdInOut;
 
-namespace ProcessParentDumper
+namespace ProcessParentDumper.Core
 {
     public class ProcessInfoProviderWin32 : IProcessInfoProvider
     {
@@ -132,8 +133,7 @@ namespace ProcessParentDumper
             var env = new Dictionary<string, string>();
             bool enableDiagnostics = Environment.GetEnvironmentVariable("DUMPER_DEBUG") == "1";
 
-            if (enableDiagnostics)
-                Console.Error.WriteLine($"[ENV DEBUG] Attempting to get environment for PID {process.Id} ({process.ProcessName})");
+            if (enableDiagnostics) Stdio.Err.WriteLine($"[ENV DEBUG] Attempting to get environment for PID {process.Id} ({process.ProcessName})");
 
             var objectAttributes = new NativeStructs.OBJECT_ATTRIBUTES
             {
@@ -151,13 +151,13 @@ namespace ProcessParentDumper
             {
                 if (enableDiagnostics)
                 {
-                    Console.Error.WriteLine($"[ENV DEBUG] Failed to NtOpenProcess for PID {process.Id}. NTSTATUS: 0x{ntstatus:X}");
+                    Stdio.Err.WriteLine($"[ENV DEBUG] Failed to NtOpenProcess for PID {process.Id}. NTSTATUS: 0x{ntstatus:X}");
                 }
                 return env;
             }
 
             if (enableDiagnostics)
-                Console.Error.WriteLine($"[ENV DEBUG] Successfully opened process handle: 0x{hProcess:X}");
+                Stdio.Err.WriteLine($"[ENV DEBUG] Successfully opened process handle: 0x{hProcess:X}");
 
             try
             {
@@ -165,7 +165,7 @@ namespace ProcessParentDumper
                 if (!GetPebAddress(hProcess, out IntPtr pPeb, out IntPtr pPebWow32, enableDiagnostics))
                 {
                     if (enableDiagnostics)
-                        Console.Error.WriteLine($"[ENV DEBUG] Failed to get PEB address");
+                        Stdio.Err.WriteLine($"[ENV DEBUG] Failed to get PEB address");
                     return env;
                 }
 
@@ -175,9 +175,9 @@ namespace ProcessParentDumper
 
                 if (enableDiagnostics)
                 {
-                    Console.Error.WriteLine($"[ENV DEBUG] PEB base address: 0x{pPeb:X}");
+                    Stdio.Err.WriteLine($"[ENV DEBUG] PEB base address: 0x{pPeb:X}");
                     if (isWow64)
-                        Console.Error.WriteLine($"[ENV DEBUG] Using WOW64 PEB: 0x{pPebWow32:X}");
+                        Stdio.Err.WriteLine($"[ENV DEBUG] Using WOW64 PEB: 0x{pPebWow32:X}");
                 }
 
                 // Get process parameters
@@ -186,7 +186,7 @@ namespace ProcessParentDumper
                 if (pProcessParameters == IntPtr.Zero)
                 {
                     if (enableDiagnostics)
-                        Console.Error.WriteLine($"[ENV DEBUG] Failed to get process parameters");
+                        Stdio.Err.WriteLine($"[ENV DEBUG] Failed to get process parameters");
                     return env;
                 }
 
@@ -209,7 +209,7 @@ namespace ProcessParentDumper
 
                     if (enableDiagnostics)
                     {
-                        Console.Error.WriteLine($"[ENV DEBUG] Environment block address (32-bit): 0x{processParams32.Environment:X}, Size: {environmentSize}");
+                        Stdio.Err.WriteLine($"[ENV DEBUG] Environment block address (32-bit): 0x{processParams32.Environment:X}, Size: {environmentSize}");
                     }
                 }
                 else
@@ -223,7 +223,7 @@ namespace ProcessParentDumper
                     environmentSize = processParams.EnvironmentSize;
 
                     if (enableDiagnostics)
-                        Console.Error.WriteLine($"[ENV DEBUG] Environment block address: 0x{processParams.Environment:X}, Size: {processParams.EnvironmentSize}");
+                        Stdio.Err.WriteLine($"[ENV DEBUG] Environment block address: 0x{processParams.Environment:X}, Size: {processParams.EnvironmentSize}");
                 }
 
                 Marshal.FreeHGlobal(pProcessParameters);
@@ -231,7 +231,7 @@ namespace ProcessParentDumper
                 if (pEnvironment == IntPtr.Zero || environmentSize == 0)
                 {
                     if (enableDiagnostics)
-                        Console.Error.WriteLine($"[ENV DEBUG] Environment block is null or size is 0");
+                        Stdio.Err.WriteLine($"[ENV DEBUG] Environment block is null or size is 0");
                     return env;
                 }
 
@@ -242,7 +242,7 @@ namespace ProcessParentDumper
                 env = EnumEnvironments(hProcess, pEnvironment, nEnvironmentSize);
 
                 if (enableDiagnostics)
-                    Console.Error.WriteLine($"[ENV DEBUG] Successfully read {env.Count} environment variables");
+                    Stdio.Err.WriteLine($"[ENV DEBUG] Successfully read {env.Count} environment variables");
             }
             finally
             {
@@ -260,9 +260,9 @@ namespace ProcessParentDumper
 
             if (enableDiagnostics)
             {
-                Console.Error.WriteLine($"[ENV DEBUG] PROCESS_BASIC_INFORMATION struct size: {nInfoLength} bytes");
-                Console.Error.WriteLine($"[ENV DEBUG] Environment.Is64BitProcess: {Environment.Is64BitProcess}");
-                Console.Error.WriteLine($"[ENV DEBUG] IntPtr.Size: {IntPtr.Size}");
+                Stdio.Err.WriteLine($"[ENV DEBUG] PROCESS_BASIC_INFORMATION struct size: {nInfoLength} bytes");
+                Stdio.Err.WriteLine($"[ENV DEBUG] Environment.Is64BitProcess: {Environment.Is64BitProcess}");
+                Stdio.Err.WriteLine($"[ENV DEBUG] IntPtr.Size: {IntPtr.Size}");
             }
 
             // Check for WOW64 (32-bit process on 64-bit OS)
@@ -280,7 +280,7 @@ namespace ProcessParentDumper
                 {
                     pPebWow32 = Marshal.ReadIntPtr(pWow64Buffer);
                     if (enableDiagnostics)
-                        Console.Error.WriteLine($"[ENV DEBUG] WOW64 PEB address: 0x{pPebWow32:X}");
+                        Stdio.Err.WriteLine($"[ENV DEBUG] WOW64 PEB address: 0x{pPebWow32:X}");
                 }
 
                 Marshal.FreeHGlobal(pWow64Buffer);
@@ -297,7 +297,7 @@ namespace ProcessParentDumper
             if (ntstatus == Win32Consts.STATUS_SUCCESS)
             {
                 if (enableDiagnostics)
-                    Console.Error.WriteLine($"[ENV DEBUG] NtQueryInformationProcess returned {returnedLength} bytes");
+                    Stdio.Err.WriteLine($"[ENV DEBUG] NtQueryInformationProcess returned {returnedLength} bytes");
 
                 var info = (NativeStructs.PROCESS_BASIC_INFORMATION)Marshal.PtrToStructure(
                     pInfoBuffer,
@@ -306,26 +306,26 @@ namespace ProcessParentDumper
 
                 if (enableDiagnostics)
                 {
-                    Console.Error.WriteLine($"[ENV DEBUG] PROCESS_BASIC_INFORMATION:");
-                    Console.Error.WriteLine($"[ENV DEBUG]   ExitStatus: 0x{info.ExitStatus:X}");
-                    Console.Error.WriteLine($"[ENV DEBUG]   PebBaseAddress: 0x{info.PebBaseAddress:X}");
-                    Console.Error.WriteLine($"[ENV DEBUG]   AffinityMask: 0x{info.AffinityMask:X}");
-                    Console.Error.WriteLine($"[ENV DEBUG]   BasePriority: {info.BasePriority}");
-                    Console.Error.WriteLine($"[ENV DEBUG]   UniqueProcessId: {info.UniqueProcessId}");
-                    Console.Error.WriteLine($"[ENV DEBUG]   InheritedFromUniqueProcessId: {info.InheritedFromUniqueProcessId}");
+                    Stdio.Err.WriteLine($"[ENV DEBUG] PROCESS_BASIC_INFORMATION:");
+                    Stdio.Err.WriteLine($"[ENV DEBUG]   ExitStatus: 0x{info.ExitStatus:X}");
+                    Stdio.Err.WriteLine($"[ENV DEBUG]   PebBaseAddress: 0x{info.PebBaseAddress:X}");
+                    Stdio.Err.WriteLine($"[ENV DEBUG]   AffinityMask: 0x{info.AffinityMask:X}");
+                    Stdio.Err.WriteLine($"[ENV DEBUG]   BasePriority: {info.BasePriority}");
+                    Stdio.Err.WriteLine($"[ENV DEBUG]   UniqueProcessId: {info.UniqueProcessId}");
+                    Stdio.Err.WriteLine($"[ENV DEBUG]   InheritedFromUniqueProcessId: {info.InheritedFromUniqueProcessId}");
 
                     // Dump raw bytes
-                    Console.Error.Write($"[ENV DEBUG]   Raw bytes: ");
+                    Stdio.Err.Write($"[ENV DEBUG]   Raw bytes: ");
                     for (int i = 0; i < Math.Min(returnedLength, 48); i++)
                     {
-                        Console.Error.Write($"{Marshal.ReadByte(pInfoBuffer, i):X2} ");
+                        Stdio.Err.Write($"{Marshal.ReadByte(pInfoBuffer, i):X2} ");
                     }
-                    Console.Error.WriteLine();
+                    Stdio.Err.WriteLine();
                 }
             }
             else if (enableDiagnostics)
             {
-                Console.Error.WriteLine($"[ENV DEBUG] NtQueryInformationProcess failed. NTSTATUS: 0x{ntstatus:X}");
+                Stdio.Err.WriteLine($"[ENV DEBUG] NtQueryInformationProcess failed. NTSTATUS: 0x{ntstatus:X}");
             }
 
             Marshal.FreeHGlobal(pInfoBuffer);
@@ -554,3 +554,4 @@ namespace ProcessParentDumper
         }
     }
 }
+

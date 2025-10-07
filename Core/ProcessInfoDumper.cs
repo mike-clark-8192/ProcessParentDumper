@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text.Json;
 
-namespace ProcessParentDumper
+namespace ProcessParentDumper.Core
 {
     public class ProcessInfoDumper
     {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Management;
 
-namespace ProcessParentDumper
+namespace ProcessParentDumper.Core
 {
     public class ProcessInfoProviderWMI : IProcessInfoProvider
     {

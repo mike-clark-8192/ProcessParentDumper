@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace ProcessParentDumper
+namespace ProcessParentDumper.Core
 {
     public class ProcessOutput
     {

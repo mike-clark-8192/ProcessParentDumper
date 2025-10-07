@@ -1,4 +1,6 @@
 using System;
+using ProcessParentDumper.Core;
+using ProcessParentDumper.StdInOut;
 
 namespace ProcessParentDumper
 {
@@ -6,6 +8,8 @@ namespace ProcessParentDumper
     {
         static void Main(string[] args)
         {
+            DotnetRedoStdio.Install();
+
             try
             {
                 // Determine which provider to use
@@ -32,11 +36,11 @@ namespace ProcessParentDumper
 
                 // Dump the process info
                 string json = dumper.DumpProcessInfo();
-                Console.WriteLine(json);
+                Stdio.Out.WriteLine(json);
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine("Error: " + ex.Message);
+                Stdio.Err.WriteLine("Error: " + ex.Message);
                 Environment.Exit(1);
             }
         }

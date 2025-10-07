@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace ProcessParentDumper
+namespace ProcessParentDumper.Core
 {
     /// <summary>
     /// Hybrid provider that uses WMI for most operations but falls back to Win32 API for command lines when needed
